@@ -348,7 +348,10 @@ pluginManagement {
                 /* More common as "Eclipse Adoptium". */
                 // @Updated by SuperMonster003 on Apr 16, 2025. (Manual)
                 agpVersionMap = mapOf(
-                    "21.0.6+7" to "8.7.3", /* Apr 16, 2025. */
+                    // 原为 8.7.3, 但依赖 androidx.activity 1.12.2 要求 AGP >= 8.9.1,
+                    // 在 CI(JDK 21 + temurin)下会命中这一条并导致 checkAarMetadata 失败。
+                    // Gradle 9.4.0 支持更高的 AGP, 这里提到 8.11.1(上游 IntelliJ 映射里验证过的版本)。
+                    "21.0.6+7" to "8.11.1", /* was 8.7.3 */
                     "20.0.2+9" to "8.2.2", /* Dec 2, 2024. */
                 ),
             ) {
