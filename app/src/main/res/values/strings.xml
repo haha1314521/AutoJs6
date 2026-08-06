@@ -1706,4 +1706,8 @@
     <string name="text_xiaomi_background_popup_permission">Display pop-up windows while running in the background</string>
     <string name="warn_continue_operation_without_saving_settings">The settings has not been saved, are you sure to continue the operation?</string>
     <string name="warn_exit_without_saving_settings">The settings has not been saved, are you sure to exit?</string>
+    <string name="text_repeat_section">Repeat execution</string>
+    <string name="text_repeat_section_summary">After each trigger, run the script this many times with the given interval. Times 0 means infinite.</string>
+    <string name="text_repeat_times">Times</string>
+    <string name="text_repeat_interval_minutes">Interval (min)</string>
 </resources>

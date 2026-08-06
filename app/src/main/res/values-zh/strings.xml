@@ -1428,4 +1428,8 @@
     <string name="text_xiaomi_background_popup_permission">后台弹出界面</string>
     <string name="warn_continue_operation_without_saving_settings">设置尚未保存, 确定要继续操作吗</string>
     <string name="warn_exit_without_saving_settings">设置尚未保存, 确定要退出吗</string>
+    <string name="text_repeat_section">重复执行</string>
+    <string name="text_repeat_section_summary">每次触发后，按下面的间隔重复运行脚本。次数填 0 表示无限循环。</string>
+    <string name="text_repeat_times">次数</string>
+    <string name="text_repeat_interval_minutes">间隔（分钟）</string>
 </resources>

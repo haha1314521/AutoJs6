@@ -74,6 +74,8 @@ class TimedTaskSettingActivity : BaseActivity() {
     private lateinit var mBroadcastGroup: RadioGroup
     private lateinit var mDisposableTaskTime: TextView
     private lateinit var mDisposableTaskDate: TextView
+    private lateinit var mRepeatTimes: android.widget.EditText
+    private lateinit var mRepeatInterval: android.widget.EditText
     private lateinit var mDailyTaskTimePicker: TimePicker
     private lateinit var mWeeklyTaskTimePicker: TimePicker
     private lateinit var mWeeklyTaskContainer: LinearLayout
@@ -128,6 +130,8 @@ class TimedTaskSettingActivity : BaseActivity() {
             text = TIME_FORMATTER.print(LocalTime.now())
             setOnClickListener { showDisposableTaskTimePicker() }
         }
+        mRepeatTimes = binding.repeatTimes
+        mRepeatInterval = binding.repeatInterval
         mDisposableTaskDate = binding.disposableTaskDate.apply {
             text = DATE_FORMATTER.print(LocalDate.now())
             setOnClickListener { showDisposableTaskDatePicker() }
@@ -225,6 +229,10 @@ class TimedTaskSettingActivity : BaseActivity() {
     }
 
     private fun setUpTime(timedTask: TimedTask) {
+        // 回填重复执行参数(存的是毫秒, 显示成分钟)
+        mRepeatTimes.setText(timedTask.loopTimes.toString())
+        mRepeatInterval.setText((timedTask.interval / 60_000L).toString())
+
         if (timedTask.isDisposable) {
             mDisposableTaskRadio.isChecked = true
             mDisposableTaskTime.text = TIME_FORMATTER.print(timedTask.millis)
@@ -323,12 +331,30 @@ class TimedTaskSettingActivity : BaseActivity() {
             return null
         }
         val time = LocalTime(mWeeklyTaskTimePicker.hour, mWeeklyTaskTimePicker.minute)
-        return TimedTask.weeklyTask(time, timeFlag, mScriptFile.path, default)
+        return TimedTask.weeklyTask(time, timeFlag, mScriptFile.path, buildExecutionConfig())
+    }
+
+    /**
+     * 把界面上填的"重复执行"参数组装成 ExecutionConfig.
+     *
+     * TimedTask / ExecutionConfig 本来就带 loopTimes 与 interval 字段, 执行层
+     * (LoopedBasedJavaScriptExecution) 也早就实现了循环, 只是设置界面一直没暴露出来,
+     * 所以定时任务只能"每天固定时刻跑一次"。这里把两个字段接上去。
+     *
+     * 次数填 0 = 无限循环; 间隔单位是分钟, 存进去要换算成毫秒.
+     */
+    private fun buildExecutionConfig(): ExecutionConfig {
+        val times = mRepeatTimes.text.toString().trim().toIntOrNull() ?: 1
+        val intervalMinutes = mRepeatInterval.text.toString().trim().toLongOrNull() ?: 0L
+        return ExecutionConfig(
+            loopTimes = times.coerceAtLeast(0),
+            interval = (intervalMinutes.coerceAtLeast(0L)) * 60_000L,
+        )
     }
 
     private fun createDailyTask(): TimedTask {
         val time = LocalTime(mDailyTaskTimePicker.hour, mDailyTaskTimePicker.minute)
-        return TimedTask.dailyTask(time, mScriptFile.path, ExecutionConfig())
+        return TimedTask.dailyTask(time, mScriptFile.path, buildExecutionConfig())
     }
 
     private fun createDisposableTask(): TimedTask? {
@@ -342,7 +368,7 @@ class TimedTaskSettingActivity : BaseActivity() {
             showToast(this, R.string.text_disposable_task_time_before_now)
             return null
         }
-        return TimedTask.disposableTask(dateTime, mScriptFile.path, default)
+        return TimedTask.disposableTask(dateTime, mScriptFile.path, buildExecutionConfig())
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
