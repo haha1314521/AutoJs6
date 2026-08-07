@@ -41,6 +41,22 @@ jobs:
       - name: Build with Gradle (assembleAppRelease)
         run: ./gradlew assembleAppRelease
 
+      # CI 默认的 release 构建不带签名配置, 产物是未签名 APK, 手机会直接拒绝安装。
+      # 这里用仓库里固定的 keystore 补 v1 签名 —— 固定 key 才能覆盖安装, 每次新生成
+      # 就得先卸载。目标机是 Android 8.1, v1 签名足够。
+      - name: Sign APKs
+        run: |
+          set -e
+          KS="$GITHUB_WORKSPACE/keystore/autojs6.keystore"
+          for apk in $(find app/build/outputs/apk -name "*.apk"); do
+            echo "signing $apk"
+            jarsigner -sigalg SHA256withRSA -digestalg SHA-256               -keystore "$KS" -storepass autojs6key -keypass autojs6key               "$apk" autojs6
+          done
+          echo "--- verify ---"
+          for apk in $(find app/build/outputs/apk -name "*.apk"); do
+            jarsigner -verify "$apk" | head -1
+          done
+
       - name: Upload arm64 artifacts
         id: upload-arm64-apk
         uses: actions/upload-artifact@v4
