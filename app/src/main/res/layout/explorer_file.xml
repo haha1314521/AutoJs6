@@ -89,6 +89,19 @@
 
             </LinearLayout>
 
+            <!-- 定时任务信息: 没有定时任务时整行隐藏 -->
+            <TextView
+                android:id="@+id/script_file_timed_task"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textSize="11sp"
+                android:visibility="gone"
+                tools:text="⏰ 0 8,11,14,17,20 * * *"
+                tools:visibility="visible" />
+
         </LinearLayout>
 
         <LinearLayout

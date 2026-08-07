@@ -51,6 +51,7 @@ import org.autojs.autojs.storage.history.VersionHistoryController
 import org.autojs.autojs.theme.ThemeColorHelper
 import org.autojs.autojs.theme.ThemeColorManagerCompat
 import org.autojs.autojs.theme.widget.ThemeColorSwipeRefreshLayout
+import org.autojs.autojs.timing.TimedTaskManager
 import org.autojs.autojs.ui.common.ScriptLoopDialog
 import org.autojs.autojs.ui.common.ScriptOperations
 import org.autojs.autojs.ui.explorer.ExplorerProjectToolbar.OnOperateListener
@@ -801,6 +802,7 @@ open class ExplorerView : ThemeColorSwipeRefreshLayout, SwipeRefreshLayout.OnRef
         private val mOptions: View
 
         private lateinit var mExplorerItem: ExplorerItem
+        private val mTimedTaskInfo: android.widget.TextView
 
         init {
             val explorerFileBinding = ExplorerFileBinding.bind(itemView)
@@ -811,6 +813,7 @@ open class ExplorerView : ThemeColorSwipeRefreshLayout, SwipeRefreshLayout.OnRef
             mName = explorerFileBinding.name
             mFileDate = explorerFileBinding.scriptFileDate
             mFileSize = explorerFileBinding.scriptFileSize
+            mTimedTaskInfo = explorerFileBinding.scriptFileTimedTask
 
             mActionIconContainer = explorerFileBinding.actionIconContainer
 
@@ -838,6 +841,9 @@ open class ExplorerView : ThemeColorSwipeRefreshLayout, SwipeRefreshLayout.OnRef
             setTextWith(mName) { ExplorerViewHelper.getDisplayName(context, item) }
             setTextWith(mFileDate) { PFile.getFullDateString(item.lastModified()) }
             setTextWith(mFileSize) { PFiles.formatSizeWithUnit(item.size) }
+
+            // 显示这个脚本挂着的定时任务(没有就整行隐藏)
+            bindTimedTaskInfo(item)
 
             Observable.fromCallable {
                 val shouldEditShow = item.isTextEditable || item.isExternalEditable
@@ -891,6 +897,53 @@ open class ExplorerView : ThemeColorSwipeRefreshLayout, SwipeRefreshLayout.OnRef
 
         private fun setVisibilityIf(view: View, visible: Boolean) {
             setVisibilityIf(view, if (visible) VISIBLE else GONE)
+        }
+
+        /**
+         * 在脚本列表里显示该脚本的定时任务.
+         *
+         * 原版只有进到"定时任务"页面才看得到, 列表上完全没有痕迹, 很容易忘了自己给哪个
+         * 脚本设过定时. 这里直接把 cron 表达式或下次运行时间显示在文件名下面.
+         */
+        private fun bindTimedTaskInfo(item: ExplorerItem) {
+            mTimedTaskInfo.visibility = View.GONE
+            val path = try {
+                item.toScriptFile().path
+            } catch (e: Exception) {
+                return
+            }
+            Observable.fromCallable {
+                val tasks = try {
+                    TimedTaskManager.allTasksAsList.filter { it.scriptPath == path }
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                when {
+                    tasks.isEmpty() -> ""
+                    else -> tasks.joinToString("  ") { task ->
+                        when {
+                            task.isCron -> "⏰ ${task.cron}"
+                            else -> {
+                                val next = task.nextTime
+                                when {
+                                    next > 0 -> "⏰ " + TIMED_TASK_FORMATTER.print(next)
+                                    else -> "⏰"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({ text ->
+                    if (text.isEmpty()) {
+                        mTimedTaskInfo.visibility = View.GONE
+                    } else {
+                        mTimedTaskInfo.text = text
+                        mTimedTaskInfo.visibility = View.VISIBLE
+                    }
+                }, { it.printStackTrace() })
         }
 
         private fun setFirstChar(item: ExplorerItem) {
@@ -1310,6 +1363,11 @@ open class ExplorerView : ThemeColorSwipeRefreshLayout, SwipeRefreshLayout.OnRef
     }
 
     companion object {
+
+        /** 列表里显示"下次运行时间"用的格式 */
+        private val TIMED_TASK_FORMATTER: org.joda.time.format.DateTimeFormatter =
+            org.joda.time.format.DateTimeFormat.forPattern("MM-dd HH:mm")
+
         private const val LOG_TAG = "ExplorerView"
 
         @Suppress("ConstPropertyName")

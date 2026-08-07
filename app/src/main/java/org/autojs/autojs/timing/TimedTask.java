@@ -48,6 +48,9 @@ public class TimedTask extends BaseModel {
 
     String mScriptPath;
 
+    /** crontab 表达式; 非空时走 cron 调度, 忽略 millis / timeFlag */
+    String mCron;
+
     private final Context mGlobalAppContext = GlobalAppContext.get();
 
     public TimedTask() {
@@ -80,7 +83,30 @@ public class TimedTask extends BaseModel {
         return getNextTime(mGlobalAppContext);
     }
 
+    public boolean isCron() {
+        return mCron != null && !mCron.trim().isEmpty();
+    }
+
+    public String getCron() {
+        return mCron;
+    }
+
+    public void setCron(String cron) {
+        mCron = cron;
+    }
+
     public long getNextTime(Context context) {
+        // cron 优先: 表达式自己就完整描述了触发时机, 不再看 millis / timeFlag
+        if (isCron()) {
+            CronExpression expression = CronExpression.parse(mCron);
+            if (expression != null) {
+                long next = expression.getNextTime(System.currentTimeMillis());
+                if (next > 0) {
+                    return next;
+                }
+            }
+            // 表达式坏了就退回按 millis 当每日任务处理, 至少不会静默不跑
+        }
         if (isDisposable()) {
             return mMillis;
         }

@@ -10,7 +10,7 @@ import org.autojs.autojs.timing.TimedTask;
 
 public class TimedTaskDatabase extends Database<TimedTask> {
 
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;   /* 4: 新增 cron 列 */
     private static final String NAME = "TimedTaskDatabase";
 
     public TimedTaskDatabase(Context context) {
@@ -27,6 +27,7 @@ public class TimedTaskDatabase extends Database<TimedTask> {
         values.put("loop_times", model.getLoopTimes());
         values.put("millis", model.getMillis());
         values.put("script_path", model.getScriptPath());
+        values.put("cron", model.getCron());
         return values;
     }
 
@@ -41,6 +42,11 @@ public class TimedTaskDatabase extends Database<TimedTask> {
         task.setLoopTimes(cursor.getInt(5));
         task.setMillis(cursor.getLong(6));
         task.setScriptPath(cursor.getString(7));
+        // 老库升上来的行没有这一列时, getColumnIndex 返回 -1
+        int cronIndex = cursor.getColumnIndex("cron");
+        if (cronIndex >= 0) {
+            task.setCron(cursor.getString(cronIndex));
+        }
         return task;
     }
 
@@ -60,12 +66,20 @@ public class TimedTaskDatabase extends Database<TimedTask> {
                     "`interval` INTEGER, " +
                     "`loop_times` INTEGER, " +
                     "`millis` INTEGER, " +
-                    "`script_path` TEXT);");
+                    "`script_path` TEXT, " +
+                    "`cron` TEXT);");
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            /* Empty body. */
+            // 原本是空实现, 加列必须在这里补迁移, 否则老用户升级后查询直接报错
+            if (oldVersion < 4) {
+                try {
+                    db.execSQL("ALTER TABLE `" + TimedTask.TABLE + "` ADD COLUMN `cron` TEXT;");
+                } catch (Exception ignored) {
+                    /* 列已存在则忽略 */
+                }
+            }
         }
     }
 

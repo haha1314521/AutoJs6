@@ -87,6 +87,57 @@
                         </com.github.aakira.expandablelayout.ExpandableRelativeLayout>
 
                         <org.autojs.autojs.theme.widget.ThemeColorRadioButton
+                            android:id="@+id/cron_task_radio"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:paddingStart="16dp"
+                            android:text="@string/text_cron_task"
+                            tools:ignore="RtlSymmetry" />
+
+                        <com.github.aakira.expandablelayout.ExpandableRelativeLayout
+                            android:id="@+id/cron_task_relative_layout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:ael_expanded="false"
+                            app:ael_interpolator="fastOutSlowIn"
+                            app:ael_orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="16dp"
+                                android:layout_marginEnd="16dp"
+                                android:orientation="vertical">
+
+                                <org.autojs.autojs.theme.widget.ThemeColorTextInputLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:hint="@string/text_cron_expression">
+
+                                    <androidx.appcompat.widget.AppCompatEditText
+                                        android:id="@+id/cron_expression"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="text"
+                                        android:maxLines="1"
+                                        android:text="0 8,11,14,17,20 * * *" />
+
+                                </org.autojs.autojs.theme.widget.ThemeColorTextInputLayout>
+
+                                <TextView
+                                    android:id="@+id/cron_hint"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="4dp"
+                                    android:text="@string/text_cron_hint"
+                                    android:textSize="12sp" />
+
+                            </LinearLayout>
+
+                        </com.github.aakira.expandablelayout.ExpandableRelativeLayout>
+
+                        <org.autojs.autojs.theme.widget.ThemeColorRadioButton
                             android:id="@+id/disposable_task_radio"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"

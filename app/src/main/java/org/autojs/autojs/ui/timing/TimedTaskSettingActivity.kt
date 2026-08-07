@@ -36,6 +36,7 @@ import org.autojs.autojs.timing.ExactAlarmPermissionHelper.canScheduleExactAlarm
 import org.autojs.autojs.timing.ExactAlarmPermissionHelper.requestExactAlarmPermission
 import org.autojs.autojs.timing.IntentTask
 import org.autojs.autojs.timing.TaskReceiver
+import org.autojs.autojs.timing.CronExpression
 import org.autojs.autojs.timing.TimedTask
 import org.autojs.autojs.timing.TimedTaskManager.addTask
 import org.autojs.autojs.timing.TimedTaskManager.getIntentTask
@@ -66,6 +67,8 @@ class TimedTaskSettingActivity : BaseActivity() {
     private lateinit var mToolbar: Toolbar
     private lateinit var mTimingGroup: RadioGroup
     private lateinit var mDisposableTaskRadio: RadioButton
+    private lateinit var mCronTaskRadio: RadioButton
+    private lateinit var mCronExpression: EditText
     private lateinit var mDailyTaskRadio: RadioButton
     private lateinit var mWeeklyTaskRadio: RadioButton
     private lateinit var mRunOnBroadcastRadio: RadioButton
@@ -123,6 +126,10 @@ class TimedTaskSettingActivity : BaseActivity() {
         mDisposableTaskRadio = binding.disposableTaskRadio.apply {
             setUpRadioButton()
         }
+        mCronTaskRadio = binding.cronTaskRadio.apply {
+            setUpRadioButton()
+        }
+        mCronExpression = binding.cronExpression
         mRunOnBroadcastRadio = binding.runOnBroadcast.apply {
             setUpRadioButton()
         }
@@ -233,6 +240,12 @@ class TimedTaskSettingActivity : BaseActivity() {
         mRepeatTimes.setText(timedTask.loopTimes.toString())
         mRepeatInterval.setText((timedTask.interval / 60_000L).toString())
 
+        if (timedTask.isCron) {
+            mCronTaskRadio.isChecked = true
+            mCronExpression.setText(timedTask.cron)
+            return
+        }
+
         if (timedTask.isDisposable) {
             mDisposableTaskRadio.isChecked = true
             mDisposableTaskTime.text = TIME_FORMATTER.print(timedTask.millis)
@@ -314,9 +327,28 @@ class TimedTaskSettingActivity : BaseActivity() {
     }
 
     private fun createTimedTask(): TimedTask? = when {
+        mCronTaskRadio.isChecked -> createCronTask()
         mDisposableTaskRadio.isChecked -> createDisposableTask()
         mDailyTaskRadio.isChecked -> createDailyTask()
         else -> createWeeklyTask()
+    }
+
+    /**
+     * crontab 表达式任务.
+     *
+     * 底层仍是一条普通的每日任务(millis 随便给个值), 真正决定下次触发时间的是
+     * TimedTask.getNextTime() —— 那里检测到 cron 非空就交给 CronExpression 计算,
+     * 调度器照常按返回值设闹钟, 因此不需要改动调度层.
+     */
+    private fun createCronTask(): TimedTask? {
+        val expression = mCronExpression.text.toString().trim()
+        if (!CronExpression.isValid(expression)) {
+            showToast(this, R.string.text_cron_expression_invalid)
+            return null
+        }
+        val task = TimedTask.dailyTask(LocalTime(0, 0), mScriptFile.path, buildExecutionConfig())
+        task.cron = expression
+        return task
     }
 
     private fun createWeeklyTask(): TimedTask? {

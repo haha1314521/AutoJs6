@@ -1710,4 +1710,8 @@
     <string name="text_repeat_section_summary">After each trigger, run the script this many times with the given interval. Times 0 means infinite.</string>
     <string name="text_repeat_times">Times</string>
     <string name="text_repeat_interval_minutes">Interval (min)</string>
+    <string name="text_cron_task">Cron expression</string>
+    <string name="text_cron_expression">Cron expression</string>
+    <string name="text_cron_hint">Format: minute hour day month weekday. e.g. \"0 8,11,14,17,20 * * *\" runs at those hours every day; \"30 9 * * 1-5\" runs 9:30 on weekdays.</string>
+    <string name="text_cron_expression_invalid">Invalid cron expression</string>
 </resources>
