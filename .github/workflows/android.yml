@@ -41,6 +41,24 @@ jobs:
       - name: Build with Gradle (assembleAppRelease)
         run: ./gradlew assembleAppRelease
 
+      # 精简版: 把用不到的大件从 APK 里剔掉。
+      #
+      # 这些 native 库和资源都是【按需加载】的(用到 OCR 才 loadLibrary, 点"打包APK"
+      # 才读 template), 删掉之后只要不调用对应功能就不会出问题, 所以不必改源码重编。
+      # 删完必须重新 zipalign + 签名 —— 下面的 Sign APKs 步骤会一并处理。
+      - name: Create slim APK
+        run: |
+          set -e
+          SRC=$(find app/build/outputs/apk/app/release -name "*arm64-v8a.apk" | head -1)
+          SLIM="${SRC%.apk}-slim.apk"
+          cp "$SRC" "$SLIM"
+          echo "原始大小: $(du -h "$SRC" | cut -f1)"
+
+          # 逐项删除, 某项不存在也不中断
+          zip -d "$SLIM"             "assets/template.apk"             "assets/docs/*"             "assets/doc/*"             "lib/*/libopencv_java4.so"             "lib/*/libonnxruntime.so"             "assets/models/*"             "lib/*/libmlkit_google_ocr_pipeline.so"             "assets/mlkit-google-ocr-models/*"             "lib/*/libbarhopper_v3.so"             "assets/mlkit_barcode_models/*"             "lib/*/libRapidOcr.so"             "lib/*/libmediainfo.so"             "assets/dict-chinese-words.db.gzip"             "assets/dict-chinese-phrases.db.gzip"             "lib/*/libChineseConverter.so"             "assets/openccdata/*"             "assets/prob_emit.txt"             > /dev/null || true
+
+          echo "精简后大小: $(du -h "$SLIM" | cut -f1)"
+
       # CI 默认的 release 构建不带签名配置, 产物是未签名 APK, 手机直接拒装。
       # 用 apksigner 打 v1+v2+v3 三种签名: v1 保证老系统能装, v2/v3 是 Android 7+
       # 的标准方案(targetSdk 30+ 时高版本系统强制要求)。
@@ -64,7 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-arm64-apk
-          path: app/build/outputs/apk/app/release/*-arm64-v8a.apk
+          path: app/build/outputs/apk/app/release/*arm64-v8a*.apk
         continue-on-error: true
 
       - name: Upload armv7 artifacts
