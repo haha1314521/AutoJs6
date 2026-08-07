@@ -41,20 +41,22 @@ jobs:
       - name: Build with Gradle (assembleAppRelease)
         run: ./gradlew assembleAppRelease
 
-      # CI 默认的 release 构建不带签名配置, 产物是未签名 APK, 手机会直接拒绝安装。
-      # 这里用仓库里固定的 keystore 补 v1 签名 —— 固定 key 才能覆盖安装, 每次新生成
-      # 就得先卸载。目标机是 Android 8.1, v1 签名足够。
+      # CI 默认的 release 构建不带签名配置, 产物是未签名 APK, 手机直接拒装。
+      # 用 apksigner 打 v1+v2+v3 三种签名: v1 保证老系统能装, v2/v3 是 Android 7+
+      # 的标准方案(targetSdk 30+ 时高版本系统强制要求)。
+      # keystore 固定放在仓库里, 这样后续版本可以覆盖安装, 不用每次卸载。
       - name: Sign APKs
         run: |
           set -e
           KS="$GITHUB_WORKSPACE/keystore/autojs6.keystore"
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          echo "build-tools: $BUILD_TOOLS"
           for apk in $(find app/build/outputs/apk -name "*.apk"); do
-            echo "signing $apk"
-            jarsigner -sigalg SHA256withRSA -digestalg SHA-256               -keystore "$KS" -storepass autojs6key -keypass autojs6key               "$apk" autojs6
-          done
-          echo "--- verify ---"
-          for apk in $(find app/build/outputs/apk -name "*.apk"); do
-            jarsigner -verify "$apk" | head -1
+            echo "== $apk"
+            "$BUILD_TOOLS/zipalign" -p -f 4 "$apk" "$apk.aligned"
+            mv "$apk.aligned" "$apk"
+            "$BUILD_TOOLS/apksigner" sign               --ks "$KS" --ks-key-alias autojs6               --ks-pass pass:autojs6key --key-pass pass:autojs6key               --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true               "$apk"
+            "$BUILD_TOOLS/apksigner" verify --print-certs "$apk" | head -4
           done
 
       - name: Upload arm64 artifacts
